@@ -57,6 +57,8 @@
         scope.options.breakpoints = scope.options.breakpoints || false;
         scope.options.loadInvisible = scope.options.loadInvisible || false;
         scope.options.successClass = scope.options.successClass || 'b-loaded';
+        scope.options.slowLoadingClass = scope.options.slowLoadingClass || "b-slow-loading";
+        scope.options.slowLoadingTreshold = scope.options.slowLoadingTreshold || 500;
         scope.options.validateDelay = scope.options.validateDelay || 25;
         scope.options.saveViewportOffsetDelay = scope.options.saveViewportOffsetDelay || 50;
         scope.options.srcset = scope.options.srcset || 'data-srcset';
@@ -213,6 +215,10 @@
                 var isPicture = parent && equal(parent, 'picture');
                 // Image or background image
                 if (isImage || ele.src === undefined) {
+                    var slowLoadingTimer = setTimeout(() => {
+                      addSlowLoadingClass(ele, options);
+                      clearTimeout(slowLoadingTimer);
+                    }, options.slowLoadingTreshold);
                     var img = new Image();
                     // using EventListener instead of onerror and onload
                     // due to bug introduced in chrome v50 
@@ -233,7 +239,7 @@
                         } else {
                             ele.style.backgroundImage = 'url("' + src + '")';
                         }
-                        itemLoaded(ele, options);
+                        itemLoaded(ele, options, slowLoadingTimer);
                         unbindEvent(img, 'load', onLoadHandler);
                         unbindEvent(img, 'error', onErrorHandler);
                     };
@@ -269,7 +275,8 @@
         }
     }
 
-    function itemLoaded(ele, options) {
+    function itemLoaded(ele, options, slowLoadingTimer) {
+        clearTimeout(slowLoadingTimer);
         addClass(ele, options.successClass);
         if (options.success) options.success(ele);
         // cleanup markup, remove data source attributes
@@ -278,6 +285,10 @@
         each(options.breakpoints, function(object) {
             removeAttr(ele, object.src);
         });
+    }
+  
+    function addSlowLoadingClass(ele, options) {
+      addClass(ele, options.slowLoadingClass);
     }
 
     function handleSource(ele, attr, dataAttr) {
