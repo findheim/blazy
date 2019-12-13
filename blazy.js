@@ -215,7 +215,7 @@
                 var isPicture = parent && equal(parent, 'picture');
                 // Image or background image
                 if (isImage || ele.src === undefined) {
-                    var slowLoadingTimer = setTimeout(() => {
+                    var slowLoadingTimer = setTimeout(function() {
                       addSlowLoadingClass(ele, options);
                       clearTimeout(slowLoadingTimer);
                     }, options.slowLoadingTreshold);
