@@ -364,10 +364,10 @@
       var left = 0;
 
       return {
-        top,
-        bottom,
-        right,
-        left
+        top: top,
+        bottom: bottom,
+        right: right,
+        left: left
       }
   }
 
