@@ -120,7 +120,7 @@
 
         // start lazy load
         setTimeout(function() {
-            initialize(scope, scope.options.lazyLoadOnInit);
+            initialize(scope, !scope.options.lazyLoadOnInit);
         }); // "dom ready" fix
 
     };
@@ -128,7 +128,7 @@
 
     /* Private helper functions
      ************************************/
-    function initialize(self, startImmediateLazyLoading) {
+    function initialize(self, considerViewportOnly) {
         var util = self._util;
         // First we create an array of elements to lazy load
         util.elements = toArray(self.options);
@@ -146,16 +146,14 @@
             bindEvent(window, 'scroll', util.validateT);
         }
         // And finally, we start to lazy load.
-        if (startImmediateLazyLoading) {
-            validate(self);
-        }
+        validate(self, considerViewportOnly);
     }
 
-    function validate(self) {
+    function validate(self, considerViewportOnly) {
         var util = self._util;
         for (var i = 0; i < util.count; i++) {
             var element = util.elements[i];
-            if (elementInView(element, self.options) || hasClass(element, self.options.successClass)) {
+            if (elementInView(element, self.options, considerViewportOnly) || hasClass(element, self.options.successClass)) {
                 self.load(element);
                 util.elements.splice(i, 1);
                 util.count--;
@@ -167,26 +165,35 @@
         }
     }
 
-    function elementInView(ele, options) {
+    function elementInView(ele, options, considerViewportOnly) {
         var rect = ele.getBoundingClientRect();
+        var viewportTest = _viewport;
+
+        // only load images which are directly in visible viewport
+        if (considerViewportOnly) {
+          viewportTest = getViewport();
+        }
 
         if(options.container && _supportClosest){
             // Is element inside a container?
             var elementContainer = ele.closest(options.containerClass);
             if(elementContainer){
                 var containerRect = elementContainer.getBoundingClientRect();
+
                 // Is container in view?
-                if(inView(containerRect, _viewport)){
+                if(inView(containerRect, viewportTest)){
                     var top = containerRect.top - options.offset;
                     var right = containerRect.right + options.offset;
                     var bottom = containerRect.bottom + options.offset;
                     var left = containerRect.left - options.offset;
                     var containerRectWithOffset = {
-                        top: top > _viewport.top ? top : _viewport.top,
-                        right: right < _viewport.right ? right : _viewport.right,
-                        bottom: bottom < _viewport.bottom ? bottom : _viewport.bottom,
-                        left: left > _viewport.left ? left : _viewport.left
+                        top: top > viewportTest.top ? top : viewportTest.top,
+                        right: right < viewportTest.right ? right : viewportTest.right,
+                        bottom: bottom < viewportTest.bottom ? bottom : viewportTest.bottom,
+                        left: left > viewportTest.left ? left : viewportTest.left
                     };
+
+
                     // Is element in view of container?
                     return inView(rect, containerRectWithOffset);
                 } else {
@@ -194,7 +201,8 @@
                 }
             }
         }
-        return inView(rect, _viewport);
+
+        return inView(rect, viewportTest);
     }
 
     function inView(rect, viewport){
@@ -343,9 +351,25 @@
     }
 
     function saveViewportOffset(offset) {
-        _viewport.bottom = (window.innerHeight || document.documentElement.clientHeight) + offset;
-        _viewport.right = (window.innerWidth || document.documentElement.clientWidth) + offset;
+        var viewport = getViewport();
+
+        _viewport.bottom = viewport.bottom + offset;
+        _viewport.right = viewport.right + offset;
     }
+
+    function getViewport() {
+      var top = 0;
+      var bottom = (window.innerHeight || document.documentElement.clientHeight);
+      var right = (window.innerWidth || document.documentElement.clientWidth);
+      var left = 0;
+
+      return {
+        top,
+        bottom,
+        right,
+        left
+      }
+  }
 
     function bindEvent(ele, type, fn) {
         if (ele.attachEvent) {
