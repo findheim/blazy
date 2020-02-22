@@ -59,6 +59,7 @@
         scope.options.successClass = scope.options.successClass || 'b-loaded';
         scope.options.slowLoadingClass = scope.options.slowLoadingClass || "b-slow-loading";
         scope.options.slowLoadingTreshold = scope.options.slowLoadingTreshold || 500;
+        scope.options.lazyLoadOnInit = scope.options.lazyLoadOnInit == null ? true : scope.options.lazyLoadOnInit;
         scope.options.validateDelay = scope.options.validateDelay || 25;
         scope.options.saveViewportOffsetDelay = scope.options.saveViewportOffsetDelay || 50;
         scope.options.srcset = scope.options.srcset || 'data-srcset';
@@ -73,7 +74,7 @@
         /* public functions
          ************************************/
         scope.revalidate = function() {
-            initialize(scope);
+            initialize(scope, true);
         };
         scope.load = function(elements, force) {
             var opt = this.options;
@@ -85,7 +86,7 @@
                 });
             }
         };
-        scope.destroy = function() {            
+        scope.destroy = function() {
             var util = scope._util;
             if (scope.options.container) {
                 each(scope.options.container, function(object) {
@@ -119,7 +120,7 @@
 
         // start lazy load
         setTimeout(function() {
-            initialize(scope);
+            initialize(scope, scope.options.lazyLoadOnInit);
         }); // "dom ready" fix
 
     };
@@ -127,7 +128,7 @@
 
     /* Private helper functions
      ************************************/
-    function initialize(self) {
+    function initialize(self, startImmediateLazyLoading) {
         var util = self._util;
         // First we create an array of elements to lazy load
         util.elements = toArray(self.options);
@@ -145,7 +146,9 @@
             bindEvent(window, 'scroll', util.validateT);
         }
         // And finally, we start to lazy load.
-        validate(self);
+        if (startImmediateLazyLoading) {
+            validate(self);
+        }
     }
 
     function validate(self) {
@@ -190,15 +193,15 @@
                     return false;
                 }
             }
-        }      
+        }
         return inView(rect, _viewport);
     }
 
     function inView(rect, viewport){
         // Intersection
         return rect.right >= viewport.left &&
-               rect.bottom >= viewport.top && 
-               rect.left <= viewport.right && 
+               rect.bottom >= viewport.top &&
+               rect.left <= viewport.right &&
                rect.top <= viewport.bottom;
     }
 
@@ -221,7 +224,7 @@
                     }, options.slowLoadingTreshold);
                     var img = new Image();
                     // using EventListener instead of onerror and onload
-                    // due to bug introduced in chrome v50 
+                    // due to bug introduced in chrome v50
                     // (https://productforums.google.com/forum/#!topic/chrome/p51Lk7vnP2o)
                     var onErrorHandler = function() {
                         if (options.error) options.error(ele, "invalid");
@@ -243,7 +246,7 @@
                         unbindEvent(img, 'load', onLoadHandler);
                         unbindEvent(img, 'error', onErrorHandler);
                     };
-                    
+
                     // Picture element
                     if (isPicture) {
                         img = ele; // Image tag inside picture element wont get preloaded
@@ -286,7 +289,7 @@
             removeAttr(ele, object.src);
         });
     }
-  
+
     function addSlowLoadingClass(ele, options) {
       addClass(ele, options.slowLoadingClass);
     }
@@ -303,7 +306,7 @@
         if(srcset) {
             setAttr(ele, _attrSrcset, srcset); //srcset
         }
-        ele.src = src; //src 
+        ele.src = src; //src
     }
 
     function setAttr(ele, attr, value){
@@ -315,7 +318,7 @@
     }
 
     function removeAttr(ele, attr){
-        ele.removeAttribute(attr); 
+        ele.removeAttribute(attr);
     }
 
     function equal(ele, str) {
